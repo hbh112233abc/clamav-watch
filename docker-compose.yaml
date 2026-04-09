@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  clamav-watch:
+    build: .
+    container_name: clamav-watch
+    image: clamav-watch
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      - SCAN_DELAY=${SCAN_DELAY:-0.2}
+      - SCAN_AT_STARTUP=${SCAN_AT_STARTUP:-1}
+    volumes:
+      # 要监控的宿主机目录（只读）
+      - /var/www/uploads:/scans
+      # 持久化病毒库
+      - clamav-db:/var/lib/clamav
+      # 隔离区目录
+      - ./quarantine:/quarantine
+      # 日志目录（可选）
+      - ./logs:/var/log
+    # 资源限制（推荐）
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 3G
+        reservations:
+          cpus: '0.5'
+          memory: 0.5G
+    # 日志配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # 网络模式（默认桥接）
+    networks:
+      - clamav-network
+
+# 定义命名卷
+volumes:
+  clamav-db:
+    name: clamav-db
+
+# 网络定义
+networks:
+  clamav-network:
+    name: clamav-network
+    driver: bridge
